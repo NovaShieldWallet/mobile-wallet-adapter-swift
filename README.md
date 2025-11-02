@@ -49,97 +49,90 @@ Then add to your target:
 )
 ```
 
-## Quick Start
+## Setup
 
-> **For Nova Wallet developers**: See [DEVELOPER_SETUP.md](DEVELOPER_SETUP.md) for specific setup instructions with your App Groups.
+### 1. Add Safari Extension Target
 
-### Step 0: Configure Xcode Project (Required First!)
+This is required for dApp connections (Jupiter, Raydium, etc.).
 
-**Before writing any code, you must configure your Xcode project:**
+1. File → New → Target → **Safari Web Extension**
+2. Name it (e.g., `WalletExtension`)
+3. ✅ Check "Embed in Application"
 
-#### 1. Enable App Groups Capability
+### 2. Configure App Groups
 
-**Why**: Required for Safari Extension ↔ App communication
+**Main App:**
+- Target → Signing & Capabilities → + App Groups
+- Add: `group.com.novawallet.ios.wallet` (or your App Group ID)
 
-1. Open your Xcode project
-2. Select your **app target** in the Project Navigator
-3. Go to **Signing & Capabilities** tab
-4. Click **+ Capability**
-5. Select **App Groups**
-6. Click **+** next to App Groups
-7. Enter: `group.com.yourcompany.wallet` (replace with your domain/company)
-8. ✅ Check the box to enable it
+**Extension Target:**
+- Same steps, **same App Group ID** (must match exactly)
 
-**Important**: If you're using a Safari Extension, add the **same App Group** to your extension target too!
+### 3. Configure Extension
 
-#### 2. Configure Passkey Support (Optional but Recommended)
+Copy `WalletProviderExtension/Resources/WalletStandardProvider.js` to your extension's resources and inject it on `document_start` for all HTTPS pages.
 
-**Option A: Bundle ID (Simplest - Recommended)**
-- ✅ **No additional setup needed!** Just use your bundle ID in code
-- Works immediately, no domain required
-
-**Option B: Custom Domain (Advanced)**
-1. In **Signing & Capabilities**, click **+ Capability**
-2. Select **Associated Domains**
-3. Click **+** and add: `webcredentials:your-domain.com`
-4. You'll need to own the domain and configure it (see Apple docs)
-
-#### 3. Set Minimum iOS Version
-
-1. Select your app target
-2. Go to **General** tab
-3. Set **Minimum Deployments** to **iOS 16.0** (required for passkeys)
-
-#### 4. Configure App Group in Code
-
-Once App Groups are enabled, configure it in your code:
-
-```swift
-// Set your App Group ID (must match what you entered in Xcode)
-let store = AppGroupStore(appGroupID: "group.com.yourcompany.wallet")
-```
-
-### 1. Basic Setup
+### 4. Code Setup
 
 ```swift
 import MobileWalletAdapterSwift
 
-// Initialize wallet adapter
+// AppGroupStore (use your App Group ID)
+AppGroupStore.shared.appGroupID = "group.com.novawallet.ios.wallet"
+
+// Initialize adapter
 let adapter = MobileWalletAdapter.shared
 
-// Create keypair (if needed)
+// Create keypair
 let keychain = Ed25519Keychain()
 let publicKey = try keychain.createIfNeeded()
-print("Public key: \(publicKey.base58)")
 
-// Set up passkey authentication
-// Simplest approach: use your app's bundle identifier
+// Setup passkey
 let passkeyManager = PasskeyManager(
-    rpID: Bundle.main.bundleIdentifier ?? "com.yourcompany.wallet",
-    rpName: "My Wallet"  // This appears in system passkey dialogs
+    rpID: Bundle.main.bundleIdentifier ?? "com.novawallet.ios",
+    rpName: "Nova Wallet"
 )
 try await passkeyManager.register(username: publicKey.base58)
+
+// Setup approval handler (required)
+ApprovalCoordinator.shared.setApprovalHandler { request in
+    // Show approval UI, return .approved(result) or .rejected
+    return try await handleApproval(request)
+}
+
+// Start listening for extension requests
+ExtensionBridge.shared.startListening()
 ```
 
-**What are `rpID` and `rpName`?**
-- **`rpID`**: A unique string that identifies your wallet app to the passkey system
-  - **Easy option**: Just use `Bundle.main.bundleIdentifier` (your app's bundle ID)
-  - **Advanced option**: Use a domain like `"wallet.example.com"` only if you need web integration
-- **`rpName`**: The friendly name users see in iOS passkey prompts (like "My Wallet" or "Nova Wallet")
+### 5. Connect from Safari Extension
 
-### 2. Connect from Safari Extension
-
-The extension injects a Wallet Standard provider. When a dApp calls `connect()`, the native app receives the request via App Groups.
+When a dApp (like Jupiter) calls `connect()`, your extension relays the request to your app via App Groups. The approval handler you set up will receive the request.
 
 ```swift
-// In your app delegate or main coordinator
-let bridge = ExtensionBridge.shared
-
-// Handle incoming requests
-bridge.startListening()
+func handleApproval(_ request: ApprovalRequest) async throws -> ApprovalResponse {
+    // Unlock if needed
+    if !SessionLock.shared.isUnlocked {
+        try await passkeyManager.authenticate(sessionLock: SessionLock.shared)
+    }
+    
+    // Process request based on method
+    switch request.params {
+    case .connect:
+        WalletSession.shared.connect(origin: request.origin.absoluteString)
+        let pubKey = adapter.publicKey
+        return .approved(.connect(ConnectResult(publicKey: pubKey.base58)))
+        
+    case .signTransaction(let data):
+        let sig = try adapter.signTransaction(data, origin: request.origin)
+        return .approved(.sign(SignResult(signature: sig.base64EncodedString())))
+        
+    default:
+        return .rejected
+    }
+}
 ```
 
-### 3. Signing Transactions
+### 6. Test Connection
 
 ```swift
 let adapter = MobileWalletAdapter.shared
@@ -160,70 +153,34 @@ let signature = try await adapter.signTransaction(txData, origin: origin)
 let signedTxBytes = try await adapter.sendTransaction(txData, origin: origin)
 ```
 
-**About `sendTransaction`:**
-- Returns **signed transaction bytes** (full transaction with signature appended)
-- The **dApp is responsible** for submitting to a Solana RPC endpoint
-- This follows Wallet Standard best practices - allows dApp to choose RPC endpoint/commitment level
-- If your wallet app wants to submit directly, use an RPC client like `Solana.swift` or `web3.swift`
+1. Build and run app on device
+2. Settings → Safari → Extensions → Enable your extension
+3. Open Safari → Go to `https://jup.ag`
+4. Click "Connect Wallet"
+5. Your wallet should appear; approval sheet shows in app
 
-## Configuration
+## Configuration Details
 
-### App Groups Setup Checklist
+### App Groups
 
-**✅ Already done in "Step 0" above?** Great! If not, follow these steps:
+Both app and extension must use the same App Group ID:
 
-**For Main App:**
-1. Target → Signing & Capabilities
-2. Click **+ Capability** → **App Groups**
-3. Add: `group.com.yourdomain.wallet` (replace with your domain)
-4. ✅ Enable the checkbox
-
-**For Safari Extension (if you have one):**
-1. Select your **extension target**
-2. Same steps as above
-3. **IMPORTANT**: Use the **exact same App Group ID** as the main app
-
-**In Code:**
 ```swift
-// Use the same ID you configured in Xcode
-let store = AppGroupStore(appGroupID: "group.com.yourdomain.wallet")
+AppGroupStore.shared.appGroupID = "group.com.novawallet.ios.wallet"
 ```
 
-### Associated Domains (for Passkeys)
+### Passkeys
 
-**Option 1: Use App Bundle Identifier (Simplest)**
-- No additional setup needed
-- Use your app's bundle ID as `rpID`:
-  ```swift
-  let passkeyManager = PasskeyManager(
-      rpID: Bundle.main.bundleIdentifier ?? "com.yourcompany.wallet",
-      rpName: "My Wallet"
-  )
-  ```
+Use bundle ID (no domain setup required):
 
-**Option 2: Use Custom Domain (For Web Integration)**
-1. Enable Associated Domains capability in Xcode
-2. Add domain: `applinks:your-domain.com` or `webcredentials:your-domain.com`
-3. Configure `PasskeyManager` with your domain:
-   ```swift
-   let passkeyManager = PasskeyManager(
-       rpID: "your-domain.com",        // Must match associated domain
-       rpName: "Your Wallet Name"       // User-visible name
-   )
-   ```
-   
-**Which to choose?**
-- **Bundle ID**: Simpler, no server setup needed, passkeys are app-scoped
-- **Domain**: More flexible, allows passkey sharing between web and app, requires domain ownership
+```swift
+PasskeyManager(
+    rpID: Bundle.main.bundleIdentifier ?? "com.novawallet.ios",
+    rpName: "Nova Wallet"
+)
+```
 
-### Safari Web Extension
-
-1. Create Safari Web Extension target in Xcode
-2. Configure extension entitlements:
-   - Same App Group as main app
-   - Associated Domains (if using web-based passkeys)
-
-3. Inject Wallet Standard provider (see `Providers/WalletStandardProvider.js`)
+For domain-based passkeys, add Associated Domains capability and use your domain as `rpID`.
 
 ## Architecture
 
