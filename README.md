@@ -51,6 +51,52 @@ Then add to your target:
 
 ## Quick Start
 
+### Step 0: Configure Xcode Project (Required First!)
+
+**Before writing any code, you must configure your Xcode project:**
+
+#### 1. Enable App Groups Capability
+
+**Why**: Required for Safari Extension ↔ App communication
+
+1. Open your Xcode project
+2. Select your **app target** in the Project Navigator
+3. Go to **Signing & Capabilities** tab
+4. Click **+ Capability**
+5. Select **App Groups**
+6. Click **+** next to App Groups
+7. Enter: `group.com.yourcompany.wallet` (replace with your domain/company)
+8. ✅ Check the box to enable it
+
+**Important**: If you're using a Safari Extension, add the **same App Group** to your extension target too!
+
+#### 2. Configure Passkey Support (Optional but Recommended)
+
+**Option A: Bundle ID (Simplest - Recommended)**
+- ✅ **No additional setup needed!** Just use your bundle ID in code
+- Works immediately, no domain required
+
+**Option B: Custom Domain (Advanced)**
+1. In **Signing & Capabilities**, click **+ Capability**
+2. Select **Associated Domains**
+3. Click **+** and add: `webcredentials:your-domain.com`
+4. You'll need to own the domain and configure it (see Apple docs)
+
+#### 3. Set Minimum iOS Version
+
+1. Select your app target
+2. Go to **General** tab
+3. Set **Minimum Deployments** to **iOS 16.0** (required for passkeys)
+
+#### 4. Configure App Group in Code
+
+Once App Groups are enabled, configure it in your code:
+
+```swift
+// Set your App Group ID (must match what you entered in Xcode)
+let store = AppGroupStore(appGroupID: "group.com.yourcompany.wallet")
+```
+
 ### 1. Basic Setup
 
 ```swift
@@ -120,18 +166,26 @@ let signedTxBytes = try await adapter.sendTransaction(txData, origin: origin)
 
 ## Configuration
 
-### App Groups
+### App Groups Setup Checklist
 
-For communication between Safari Extension and native app:
+**✅ Already done in "Step 0" above?** Great! If not, follow these steps:
 
-1. Enable App Groups in your Xcode project:
-   - Target → Signing & Capabilities → + App Groups
-   - Create group ID: `group.com.yourdomain.wallet`
+**For Main App:**
+1. Target → Signing & Capabilities
+2. Click **+ Capability** → **App Groups**
+3. Add: `group.com.yourdomain.wallet` (replace with your domain)
+4. ✅ Enable the checkbox
 
-2. Configure in `AppGroupStore`:
-   ```swift
-   let store = AppGroupStore(appGroupID: "group.com.yourdomain.wallet")
-   ```
+**For Safari Extension (if you have one):**
+1. Select your **extension target**
+2. Same steps as above
+3. **IMPORTANT**: Use the **exact same App Group ID** as the main app
+
+**In Code:**
+```swift
+// Use the same ID you configured in Xcode
+let store = AppGroupStore(appGroupID: "group.com.yourdomain.wallet")
+```
 
 ### Associated Domains (for Passkeys)
 
@@ -309,19 +363,29 @@ See the code in `Bridge/ExtensionBridge.swift` and `Bridge/AppGroupStore.swift` 
 
 ## Troubleshooting
 
+### App Groups Not Working
+- **Check Xcode**: Target → Signing & Capabilities → App Groups must be enabled
+- **Verify ID matches**: The ID in code must match exactly what's in Xcode (including `group.` prefix)
+- **Extension setup**: If using Safari Extension, it must have the same App Group ID
+- **Team signing**: Make sure both app and extension are signed with the same team
+
 ### Passkey Authentication Fails
-- Ensure Associated Domains are configured
-- Check that `rpID` matches your domain or app identifier
-- Verify passkey was registered (`PasskeyManager.register()`)
+- **Bundle ID method**: Use `Bundle.main.bundleIdentifier` - no additional setup needed
+- **Domain method**: Ensure Associated Domains capability is added in Xcode
+- **Check rpID**: The `rpID` must match exactly (bundle ID or domain as configured)
+- **Verify registration**: Make sure `PasskeyManager.register()` was called successfully
+- **Device required**: Passkeys need a real device with Face ID/Touch ID (simulator has limitations)
 
 ### Extension Not Receiving Requests
-- Verify App Group IDs match in app and extension
-- Check extension is enabled in Safari settings
-- Ensure provider script is injected on `document_start`
+- **App Groups**: Must be configured in both app and extension targets
+- **Same ID**: App Group ID must be identical in both targets
+- **Safari settings**: Enable the extension in Settings → Safari → Extensions
+- **Injection**: Ensure provider script is injected on `document_start` in extension manifest
 
 ### Keychain Access Errors
-- Ensure app has Keychain Sharing capability (if needed)
-- Check `kSecAttrAccessible` attribute matches your use case
+- **Capability**: Usually no extra capability needed (Keychain is automatic)
+- **If sharing**: Only add Keychain Sharing capability if you need to share keys between apps
+- **Permissions**: Keychain access is automatic for your app bundle
 
 ## License
 
