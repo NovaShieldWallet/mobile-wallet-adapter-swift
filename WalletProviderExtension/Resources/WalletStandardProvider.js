@@ -18,6 +18,12 @@
             this._connected = false;
             this._publicKey = null;
             this._listeners = new Map();
+            
+            // Wallet Standard properties for discovery
+            this.name = 'Nova Wallet';
+            this.url = 'https://novawallet.io';
+            this.icon = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMzIiIGZpbGw9IiM2Mjc3RkUiLz48cGF0aCBkPSJNNDAgMTZIMjR2OC4wMDFIMjZ2MTZoNFYyNGgxMC4wMDF2LThaTTI4IDIyVjE4aDh2NGgtOFoiIGZpbGw9IiNmZmYiLz48L3N2Zz4=';
+            this.version = '1.0.0';
         }
         
         get isConnected() {
@@ -26,6 +32,11 @@
         
         get publicKey() {
             return this._publicKey;
+        }
+        
+        // Phantom-compatible isPhantom property
+        get isPhantom() {
+            return false; // Not Phantom but compatible interface
         }
         
         // Connect to wallet
@@ -192,7 +203,8 @@
             });
         }
         
-        // Send request to native app via Safari extension
+        // Send request to native app via App Groups
+        // The extension background script uses postMessage to communicate between pages and native handler
         async _sendRequest(method, params) {
             return new Promise((resolve, reject) => {
                 const requestId = Date.now() + Math.random();
@@ -204,54 +216,34 @@
                     params: params
                 };
                 
-                // Communicate with extension background script
-                // In a real implementation, this would use Safari Web Extension messaging
-                if (typeof safari !== 'undefined' && safari.extension) {
-                    safari.extension.dispatchMessage('wallet_request', request, (response) => {
+                // Send message to content script which forwards to background script
+                // Background script then communicates with native app via App Groups
+                window.postMessage({
+                    type: 'wallet_request',
+                    request: request
+                }, '*');
+                
+                // Listen for response from content script
+                const messageHandler = (event) => {
+                    if (event.data.type === 'wallet_response' && event.data.requestId === requestId) {
+                        window.removeEventListener('message', messageHandler);
+                        
+                        const response = event.data.response;
                         if (response.error) {
                             reject(new Error(response.error.message));
                         } else {
                             resolve(response.result);
                         }
-                    });
-                } else {
-                    // Fallback: store in App Group and post notification
-                    // Extension background script will handle
-                    const message = {
-                        type: 'wallet_request',
-                        request: request
-                    };
-                    
-                    // Store in shared storage (App Group)
-                    // This is a simplified version - real implementation uses App Groups
-                    window.localStorage.setItem(`wallet_request_${requestId}`, JSON.stringify(message));
-                    
-                    // Trigger native app via custom URL scheme
-                    window.location.href = `walletapp://request?id=${requestId}`;
-                    
-                    // Poll for response (simplified - use proper messaging in production)
-                    const pollInterval = setInterval(() => {
-                        const responseKey = `wallet_response_${requestId}`;
-                        const response = window.localStorage.getItem(responseKey);
-                        if (response) {
-                            clearInterval(pollInterval);
-                            window.localStorage.removeItem(responseKey);
-                            
-                            const parsed = JSON.parse(response);
-                            if (parsed.error) {
-                                reject(new Error(parsed.error.message));
-                            } else {
-                                resolve(parsed.result);
-                            }
-                        }
-                    }, 100);
-                    
-                    // Timeout after 30 seconds
-                    setTimeout(() => {
-                        clearInterval(pollInterval);
-                        reject(new Error('Request timeout'));
-                    }, 30000);
-                }
+                    }
+                };
+                
+                window.addEventListener('message', messageHandler);
+                
+                // Timeout after 30 seconds
+                setTimeout(() => {
+                    window.removeEventListener('message', messageHandler);
+                    reject(new Error('Request timeout'));
+                }, 30000);
             });
         }
     }

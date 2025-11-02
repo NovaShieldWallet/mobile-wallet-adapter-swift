@@ -4,33 +4,59 @@
 import PackageDescription
 
 let package = Package(
-    name: "MobileWalletAdapterSwift",
+    name: "SolanaSwiftKit",
     platforms: [
-        .iOS(.v16)
+        .iOS(.v15),
+        .macOS(.v12)
     ],
     products: [
+        // Framework 1: Core Solana crypto and transaction handling
         .library(
-            name: "MobileWalletAdapterSwift",
-            targets: ["MobileWalletAdapterSwift"]
+            name: "SolanaSwift",
+            targets: ["SolanaSwift"]
+        ),
+        // Framework 2: Safari Extension integration helpers
+        .library(
+            name: "SolanaSafariKit",
+            targets: ["SolanaSafariKit"]
         ),
     ],
-    // Note: This package is iOS-only due to passkey dependencies
-    // For macOS support, passkeys would need different implementation
-    dependencies: [
-        // Ed25519 implementation via Sodium (libsodium wrapper)
-        .package(url: "https://github.com/jedisct1/swift-sodium.git", from: "0.9.1"),
-    ],
+    dependencies: [],
     targets: [
+        // SolanaSwift: Pure Solana crypto primitives
         .target(
-            name: "MobileWalletAdapterSwift",
-            dependencies: [
-                .product(name: "Sodium", package: "swift-sodium")
-            ],
-            path: "Sources/MobileWalletAdapterSwift"
+            name: "SolanaSwift",
+            dependencies: ["Ed25519"],
+            path: "Sources/SolanaSwift"
+        ),
+        
+        // Ed25519: C implementation for signing
+        .target(
+            name: "Ed25519",
+            dependencies: [],
+            path: "Sources/Ed25519",
+            publicHeadersPath: "include"
+        ),
+        
+        // SolanaSafariKit: Safari Extension bridge
+        .target(
+            name: "SolanaSafariKit",
+            dependencies: ["SolanaSwift"],
+            path: "Sources/SolanaSafariKit",
+            resources: [
+                .copy("Resources/JSBundles")
+            ]
+        ),
+        
+        // Tests
+        .testTarget(
+            name: "SolanaSwiftTests",
+            dependencies: ["SolanaSwift"]
         ),
         .testTarget(
-            name: "MobileWalletAdapterSwiftTests",
-            dependencies: ["MobileWalletAdapterSwift"]
+            name: "SolanaSafariKitTests",
+            dependencies: ["SolanaSafariKit"]
         ),
     ]
 )
+
