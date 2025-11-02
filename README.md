@@ -6,10 +6,10 @@ Complete Solana wallet integration for iOS Safari Extensions.
 
 ```swift
 // In Xcode: File → Add Packages
-// URL: https://github.com/solana-mobile/mobile-wallet-adapter-swift.git
+// URL: https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift
 
 dependencies: [
-    .package(url: "https://github.com/solana-mobile/mobile-wallet-adapter-swift.git", branch: "main")
+    .package(url: "https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git", branch: "main")
 ]
 ```
 
