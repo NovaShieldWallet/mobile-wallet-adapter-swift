@@ -312,6 +312,54 @@ See the code in `Bridge/ExtensionBridge.swift` and `Bridge/AppGroupStore.swift` 
 
 ## Troubleshooting
 
+### "Cannot find 'MobileWalletAdapterSwift' in scope"
+
+**The import name is:**
+```swift
+import MobileWalletAdapterSwift  // ✅ Correct
+// NOT: import MobileWalletAdapterService ❌
+```
+
+**If you're using the correct import and still getting errors:**
+
+1. **Verify Package is Added:**
+   - Select your project (blue icon) in Navigator
+   - Select your target
+   - Go to "General" tab
+   - Scroll to "Frameworks, Libraries, and Embedded Content"
+   - Look for `MobileWalletAdapterSwift` in the list
+   - If missing: Go to "Package Dependencies" tab → Add Package again
+
+2. **Check Package Dependencies:**
+   - Project → Package Dependencies tab
+   - Verify `mobile-wallet-adapter-swift` is listed
+   - Check the version/branch (should be `main` or a version tag)
+
+3. **Clean Build:**
+   - Product → Clean Build Folder (⇧⌘K)
+   - Close and reopen Xcode
+   - Rebuild (⌘B)
+
+4. **Resolve Package Versions:**
+   - File → Packages → Reset Package Caches
+   - File → Packages → Update to Latest Package Versions
+
+5. **Verify Target Settings:**
+   - Select your target → Build Phases
+   - Expand "Link Binary With Libraries"
+   - Ensure `MobileWalletAdapterSwift` is listed there
+
+6. **Check Platform Compatibility:**
+   - Target → General → Minimum Deployments
+   - Must be iOS 16.0 or higher
+
+### Package Not Found in "Add Package"
+
+If the package URL doesn't work:
+- Try: `https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift`
+- Or add as local package: File → Add Packages... → Add Local...
+- Navigate to the package folder on your Mac
+
 ### App Groups Not Working
 - **Check Xcode**: Target → Signing & Capabilities → App Groups must be enabled
 - **Verify ID matches**: The ID in code must match exactly what's in Xcode (including `group.` prefix)
