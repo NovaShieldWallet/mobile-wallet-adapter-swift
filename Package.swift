@@ -14,6 +14,8 @@ let package = Package(
             targets: ["MobileWalletAdapterSwift"]
         ),
     ],
+    // Note: This package is iOS-only due to passkey dependencies
+    // For macOS support, passkeys would need different implementation
     dependencies: [
         // Ed25519 implementation via Sodium (libsodium wrapper)
         .package(url: "https://github.com/jedisct1/swift-sodium.git", from: "0.9.1"),

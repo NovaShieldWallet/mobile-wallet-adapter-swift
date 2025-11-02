@@ -17,7 +17,10 @@ public final class MobileWalletAdapter: WalletService {
     private let keychain: Ed25519Keychain
     private let signer: SolanaSigner
     private let sessionLock: SessionLock
-    private let passkeyManager: PasskeyManager
+    #if os(iOS)
+    @available(iOS 16.0, *)
+    private var passkeyManager: PasskeyManager?
+    #endif
     private let session: WalletSession
     private let coordinator: ApprovalCoordinator
     
@@ -31,7 +34,11 @@ public final class MobileWalletAdapter: WalletService {
         self.keychain = Ed25519Keychain()
         self.signer = SolanaSigner(keychain: keychain)
         self.sessionLock = SessionLock()
-        self.passkeyManager = PasskeyManager()
+        #if os(iOS)
+        if #available(iOS 16.0, *) {
+            self.passkeyManager = PasskeyManager()
+        }
+        #endif
         self.session = WalletSession.shared
         self.coordinator = ApprovalCoordinator.shared
         
@@ -117,9 +124,16 @@ public final class MobileWalletAdapter: WalletService {
     // MARK: - Private Helpers
     
     private func ensureUnlocked() async throws {
-        if requirePasskeyPerRequest || !sessionLock.isUnlocked {
-            try await passkeyManager.authenticate(sessionLock: sessionLock)
+        #if os(iOS)
+        if #available(iOS 16.0, *) {
+            if requirePasskeyPerRequest || !sessionLock.isUnlocked {
+                guard let passkeyManager = passkeyManager else {
+                    throw WalletError.internalError
+                }
+                try await passkeyManager.authenticate(sessionLock: sessionLock)
+            }
         }
+        #endif
         
         try sessionLock.requireUnlock()
     }

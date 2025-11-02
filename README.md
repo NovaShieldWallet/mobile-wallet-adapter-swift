@@ -41,7 +41,7 @@ import MobileWalletAdapterSwift  // ✅ Correct module name
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git", from: "0.1.0")
+    .package(url: "https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git", branch: "main")
 ]
 ```
 
