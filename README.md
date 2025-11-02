@@ -64,6 +64,8 @@ This is required for dApp connections (Jupiter, Raydium, etc.).
 1. File → New → Target → **Safari Web Extension**
 2. Name it (e.g., `WalletExtension`)
 3. ✅ Check "Embed in Application"
+4. **After creation, copy `WalletProviderExtension/Resources/WalletStandardProvider.js` to your extension's Resources folder**
+5. **Configure extension manifest** to inject the provider script on `document_start` for HTTPS pages
 
 ### 2. Configure App Groups
 
@@ -74,9 +76,35 @@ This is required for dApp connections (Jupiter, Raydium, etc.).
 **Extension Target:**
 - Same steps, **same App Group ID** (must match exactly)
 
-### 3. Configure Extension
+### 3. Configure Extension Manifest
 
-Copy `WalletProviderExtension/Resources/WalletStandardProvider.js` to your extension's resources and inject it on `document_start` for all HTTPS pages.
+Your extension needs to inject the provider script. In your extension's `Info.plist` or manifest, add:
+
+**For Safari Web Extension (iOS):**
+- Add content script configuration that loads `WalletStandardProvider.js`
+- Set `run_at` to `document_start`
+- Match pattern: `https://*/*` (or `http://*/*` for testing)
+
+**Example SFSafariContentScript entry:**
+```xml
+<key>SFSafariContentScript</key>
+<array>
+    <dict>
+        <key>Matches</key>
+        <array>
+            <string>https://*/*</string>
+        </array>
+        <key>Scripts</key>
+        <array>
+            <string>WalletStandardProvider.js</string>
+        </array>
+        <key>RunAt</key>
+        <string>document_start</string>
+    </dict>
+</array>
+```
+
+**Important:** The script must be injected at `document_start` so it's available before dApps check for `window.solana`.
 
 ### 4. Code Setup
 
