@@ -2,6 +2,8 @@
 
 A Swift Package that lets your iOS wallet connect to Solana dApps in Safari. Your users can sign transactions with optional passkey protection for extra security.
 
+**Repository:** [https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift](https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift)
+
 ## Overview
 
 Build a Solana wallet that works with dApps in Safari, just like Glow or Phantom. Key features:
@@ -22,15 +24,30 @@ Build a Solana wallet that works with dApps in Safari, just like Glow or Phantom
 
 ### Swift Package Manager
 
-Add to your `Package.swift`:
+**In Xcode:**
+1. File → Add Packages...
+2. Enter the repository URL: `https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git`
+3. Click Add Package
+4. Select product: `MobileWalletAdapterSwift`
+5. Click Add Package
+
+**In Package.swift:**
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/your-org/MobileWalletAdapterSwift.git", from: "0.1.0")
+    .package(url: "https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git", from: "0.1.0")
 ]
 ```
 
-Or in Xcode: File → Add Packages → enter the repository URL.
+Then add to your target:
+```swift
+.target(
+    name: "YourTarget",
+    dependencies: [
+        .product(name: "MobileWalletAdapterSwift", package: "mobile-wallet-adapter-swift")
+    ]
+)
+```
 
 ## Quick Start
 
@@ -308,11 +325,11 @@ See the code in `Bridge/ExtensionBridge.swift` and `Bridge/AppGroupStore.swift` 
 
 ## License
 
-[Your License Here]
+See repository for license information.
 
 ## Contributing
 
-[Contributing Guidelines]
+Contributions welcome! Please open issues or pull requests on [GitHub](https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift).
 
 ## References
 
