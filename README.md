@@ -51,6 +51,8 @@ Then add to your target:
 
 ## Quick Start
 
+> **For Nova Wallet developers**: See [DEVELOPER_SETUP.md](DEVELOPER_SETUP.md) for specific setup instructions with your App Groups.
+
 ### Step 0: Configure Xcode Project (Required First!)
 
 **Before writing any code, you must configure your Xcode project:**
