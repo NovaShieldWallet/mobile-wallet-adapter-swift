@@ -77,8 +77,8 @@ Copy `WalletProviderExtension/Resources/WalletStandardProvider.js` to your exten
 ```swift
 import MobileWalletAdapterSwift
 
-// AppGroupStore (use your App Group ID)
-AppGroupStore.shared.appGroupID = "group.com.novawallet.ios.wallet"
+// Configure App Group (use your App Group ID)
+let store = AppGroupStore(appGroupID: "group.com.novawallet.ios.wallet")
 
 // Initialize adapter
 let adapter = MobileWalletAdapter.shared
@@ -132,32 +132,15 @@ func handleApproval(_ request: ApprovalRequest) async throws -> ApprovalResponse
 }
 ```
 
-### 6. Test Connection
+### 5. Test with Jupiter
 
-```swift
-let adapter = MobileWalletAdapter.shared
-
-// Authenticate with passkey (if session locked)
-let sessionLock = SessionLock.shared
-if !sessionLock.isUnlocked {
-    try await passkeyManager.authenticate(sessionLock: sessionLock)
-}
-
-// Sign transaction (returns signature)
-let txData = Data(/* transaction bytes */)
-let origin = URL(string: "https://jup.ag")!
-let signature = try await adapter.signTransaction(txData, origin: origin)
-
-// Sign and send (returns signed transaction bytes for dApp to broadcast)
-// Note: The dApp is responsible for submitting to RPC endpoint
-let signedTxBytes = try await adapter.sendTransaction(txData, origin: origin)
-```
-
-1. Build and run app on device
+1. Build and run on device
 2. Settings → Safari → Extensions → Enable your extension
-3. Open Safari → Go to `https://jup.ag`
+3. Open Safari → `https://jup.ag`
 4. Click "Connect Wallet"
-5. Your wallet should appear; approval sheet shows in app
+5. Your wallet appears; approval shows in app
+
+The approval handler you set up will receive `connect`, `signTransaction`, etc. requests.
 
 ## Configuration Details
 
@@ -166,7 +149,7 @@ let signedTxBytes = try await adapter.sendTransaction(txData, origin: origin)
 Both app and extension must use the same App Group ID:
 
 ```swift
-AppGroupStore.shared.appGroupID = "group.com.novawallet.ios.wallet"
+let store = AppGroupStore(appGroupID: "group.com.novawallet.ios.wallet")
 ```
 
 ### Passkeys
