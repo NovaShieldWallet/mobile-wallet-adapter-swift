@@ -1,6 +1,6 @@
 # MobileWalletAdapterSwift
 
-A Swift Package that lets your iOS wallet connect to Solana dApps in Safari. Your users can sign transactions with optional passkey protection for extra security.
+**MWA Solana for Swift** - A Swift Package that lets your iOS wallet connect to Solana dApps in Safari. Your users can sign transactions with optional passkey protection for extra security.
 
 **Repository:** [https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift](https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift)
 
