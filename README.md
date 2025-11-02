@@ -28,8 +28,14 @@ Build a Solana wallet that works with dApps in Safari, just like Glow or Phantom
 1. File → Add Packages...
 2. Enter the repository URL: `https://github.com/NovaShieldWallet/mobile-wallet-adapter-swift.git`
 3. Click Add Package
-4. Select product: `MobileWalletAdapterSwift`
-5. Click Add Package
+4. Select product: `MobileWalletAdapterSwift` ✅
+5. Make sure it's linked to your target (General → Frameworks, Libraries, and Embedded Content)
+6. Click Add Package
+
+**Import in your code:**
+```swift
+import MobileWalletAdapterSwift  // ✅ Correct module name
+```
 
 **In Package.swift:**
 
@@ -75,6 +81,7 @@ Copy `WalletProviderExtension/Resources/WalletStandardProvider.js` to your exten
 ### 4. Code Setup
 
 ```swift
+// ✅ Correct import - module name is "MobileWalletAdapterSwift"
 import MobileWalletAdapterSwift
 
 // Configure App Group (use your App Group ID)
